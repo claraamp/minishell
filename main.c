@@ -2,14 +2,43 @@
 
 #include <unistd.h>   /* write, STDOUT_FILENO, STDERR_FILENO */
 #include <string.h>   /* strlen, strcmp */
+#include <errno.h>    /* errno, EINTR */
 #include "shell.h"
 
+/*
+* Escreve a string inteira no descritor fd usando write().
+*
+* write() pode escrever MENOS bytes do que foi pedido (escrita parcial,
+* comum em pipes), então repetimos a partir de onde parou até acabar.
+* Se for interrompido por um sinal (EINTR), tentamos de novo.
+*
+* Retorna: 0 se escreveu tudo, -1 em erro.
+*/
+static int escrever_tudo(int fd, const char *msg) {
+    size_t restante = strlen(msg);
+
+    while (restante > 0) {
+        ssize_t r = write(fd, msg, restante);
+
+        if (r == -1) {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+
+        msg      += r;   /* avança até onde já foi escrito */
+        restante -= (size_t)r;
+    }
+   return 0;
+}
+
 void escrever(const char *msg) {
-    write(STDOUT_FILENO, msg, strlen(msg));
+    /* Se a saída falhar, não há onde avisar: ignoramos de forma explícita. */
+    (void)escrever_tudo(STDOUT_FILENO, msg);
 }
 
 void escrever_erro(const char *msg) {
-    write(STDERR_FILENO, msg, strlen(msg));
+    (void)escrever_tudo(STDERR_FILENO, msg);
 }
 
 void loop_principal(void) {
