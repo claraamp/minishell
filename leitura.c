@@ -64,12 +64,17 @@ ssize_t ler_comando(char *buffer, size_t tamanho) {
 }
 
 /*
- * Quebra a linha em tokens separados por espaço/tab, usando strtok().
- * strtok modifica a própria linha: troca cada separador por '\0', e
- * argv[i] passa a apontar para dentro de `linha` (não há cópia).
+ * Quebra a linha em tokens separados por espaço, tab, '\r' ou '\n',
+ * usando strtok(). strtok modifica a própria linha: troca cada separador
+ * por '\0', e argv[i] passa a apontar para dentro de `linha` (não há cópia).
  * argv termina com NULL, que é exigência do execvp().
  *
- * Retorna: quantidade de argumentos (argc). 0 = linha vazia.
+ * Cabem no máximo MAX_ARGS - 1 argumentos (1 posição é do NULL). Se a
+ * linha tiver mais, o comando inteiro é descartado com um aviso, em vez
+ * de rodar com menos argumentos do que o usuário digitou
+ * (ex.: um rm com 100 arquivos apagaria só os primeiros).
+ *
+ * Retorna: quantidade de argumentos (argc). 0 = linha vazia ou descartada.
  */
 int parse_comando(char *linha, char **argv) {
     const char *separadores = " \t\r\n";  /* \r: arquivos salvos no Windows */
@@ -83,7 +88,12 @@ int parse_comando(char *linha, char **argv) {
     }
 
     token = strtok(linha, separadores);
-    while (token != NULL && i < MAX_ARGS - 1) {   /* reserva 1 posição p/ NULL */
+    while (token != NULL) {
+        if (i == MAX_ARGS - 1) {    /* só sobrou a posição do NULL */
+            escrever_erro("minishell: argumentos demais (comando ignorado)\n");
+            argv[0] = NULL;
+            return 0;
+        }
         argv[i++] = token;
         token = strtok(NULL, separadores);
     }

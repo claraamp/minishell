@@ -16,9 +16,11 @@
 ssize_t ler_comando(char *buffer, size_t tamanho);
 
 /*
- * Quebra a linha em tokens separados por espaço/tab.
+ * Quebra a linha em tokens separados por espaço, tab, '\r' ou '\n'.
  * Preenche argv[] e termina com NULL (exigência do execvp).
- * Retorna: quantidade de argumentos (argc). 0 = linha vazia.
+ * Aceita até MAX_ARGS - 1 argumentos; com mais que isso, avisa no
+ * stderr e descarta o comando.
+ * Retorna: quantidade de argumentos (argc). 0 = linha vazia ou descartada.
  */
 int parse_comando(char *linha, char **argv);
 
