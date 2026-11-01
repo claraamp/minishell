@@ -5,12 +5,12 @@
 #include "shell.h"
 
 void escrever(const char *msg) {
-    /* TODO: write(STDOUT_FILENO, msg, strlen(msg)); */
+    write(STDOUT_FILENO, msg, strlen(msg));
     (void)msg;
 }
 
 void escrever_erro(const char *msg) {
-    /* TODO: write(STDERR_FILENO, msg, strlen(msg)); */
+    write(STDERR_FILENO, msg, strlen(msg));
     (void)msg;
 }
 
