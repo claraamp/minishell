@@ -6,12 +6,10 @@
 
 void escrever(const char *msg) {
     write(STDOUT_FILENO, msg, strlen(msg));
-    (void)msg;
 }
 
 void escrever_erro(const char *msg) {
     write(STDERR_FILENO, msg, strlen(msg));
-    (void)msg;
 }
 
 void loop_principal(void) {
