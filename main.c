@@ -6,30 +6,30 @@
 #include "shell.h"
 
 /*
-* Escreve a string inteira no descritor fd usando write().
-*
-* write() pode escrever MENOS bytes do que foi pedido (escrita parcial,
-* comum em pipes), então repetimos a partir de onde parou até acabar.
-* Se for interrompido por um sinal (EINTR), tentamos de novo.
-*
-* Retorna: 0 se escreveu tudo, -1 em erro.
-*/
+ * escrever_tudo: escreve a string msg inteira no descritor fd.
+ *
+ * O write() pode escrever menos bytes do que o pedido (escrita parcial)
+ * ou ser interrompido por um sinal antes de escrever (errno == EINTR).
+ * Por isso o laço repete até não restar nada.
+ *
+ * Retorna: 0 se escreveu tudo, -1 em erro.
+ */
 static int escrever_tudo(int fd, const char *msg) {
     size_t restante = strlen(msg);
 
     while (restante > 0) {
         ssize_t r = write(fd, msg, restante);
 
-        if (r == -1) {
-            if (errno == EINTR)
-                continue;
-            return -1;
+        if (r <= 0) {
+            if (r == -1 && errno == EINTR)
+                continue;   /* interrompido por sinal: tenta de novo */
+            return -1;      /* erro real, ou write() retornou 0 */
         }
 
-        msg      += r;   /* avança até onde já foi escrito */
+        msg      += r;      /* avança até onde já foi escrito */
         restante -= (size_t)r;
     }
-   return 0;
+    return 0;
 }
 
 void escrever(const char *msg) {
