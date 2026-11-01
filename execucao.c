@@ -2,7 +2,7 @@
 
 #include <unistd.h>     /* fork, execvp, _exit */
 #include <sys/wait.h>   /* wait, WIFEXITED, WEXITSTATUS */
-#include <errno.h>      /* errno, ENOENT, EINTR */
+#include <errno.h>      /* errno, ENOENT, EACCES, EINTR */
 #include <string.h>     /* strerror */
 #include "shell.h"
 
@@ -25,6 +25,7 @@
 int executar_comando(char **argv) {
     pid_t pid;
     int   status;
+    int   erro;
 
     if (argv == NULL || argv[0] == NULL)
         return -1;
@@ -32,8 +33,9 @@ int executar_comando(char **argv) {
     pid = fork();
 
     if (pid < 0) {                  /* erro: nenhum processo foi criado */
+        erro = errno;               /* guarda antes: o write() pode alterar o errno */
         escrever_erro("minishell: erro ao criar processo: ");
-        escrever_erro(strerror(errno));
+        escrever_erro(strerror(erro));
         escrever_erro("\n");
         return -1;
     }
@@ -42,16 +44,20 @@ int executar_comando(char **argv) {
         execvp(argv[0], argv);
 
         /* Só chega aqui se o execvp() falhou. */
+        erro = errno;               /* guarda antes: o write() pode alterar o errno */
         escrever_erro("minishell: ");
         escrever_erro(argv[0]);
-        if (errno == ENOENT) {
+        if (erro == ENOENT) {
             escrever_erro(": comando não encontrado\n");
         } else {
             escrever_erro(": ");
-            escrever_erro(strerror(errno));
+            escrever_erro(strerror(erro));
             escrever_erro("\n");
         }
-        _exit(127);                 /* 127: convenção de "comando não encontrado" */
+
+        /* Mesma convenção do bash: 126 = achou mas não pode executar
+         * (ex.: sem permissão), 127 = comando não encontrado. */
+        _exit(erro == EACCES ? 126 : 127);
     }
 
     /* PROCESSO PAI: espera o filho terminar. */
