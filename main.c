@@ -42,24 +42,33 @@ void escrever_erro(const char *msg) {
 }
 
 void loop_principal(void) {
-    char linha[MAX_LINHA];
-    char *argv[MAX_ARGS];
+    char    linha[MAX_LINHA];
+    char   *argv[MAX_ARGS];
+    ssize_t n;
+    int     argc;
 
-    /*
-     * TODO (dentro de um while (1)):
-     * 1. escrever("> ");
-     * 2. ssize_t n = ler_comando(linha, sizeof(linha));
-     *      n == 0  -> EOF: escrever("\n") e sair do loop (break).
-     *      n == -1 -> escrever_erro("erro de leitura\n") e continue.
-     * 3. int argc = parse_comando(linha, argv);
-     *      argc == 0 -> linha vazia: continue.
-     * 4. Se strcmp(argv[0], "exit") == 0 -> sair do loop (break).
-     * 5. (Opcional/extra) Se argv[0] for "cd" -> chdir(argv[1]) aqui,
-     *    SEM fork. Explicar na apresentação por que cd precisa ser builtin.
-     * 6. executar_comando(argv);
-     */
-    (void)linha;
-    (void)argv;
+    while (1) {
+        escrever("> ");
+
+        n = ler_comando(linha, sizeof(linha));
+        if (n == 0) {                   /* EOF (Ctrl+D): encerra */
+            escrever("\n");
+            break;
+        }
+        if (n == -1) {                  /* erro real de leitura: encerra */
+            escrever_erro("minishell: erro de leitura\n");
+            break;
+        }
+
+        argc = parse_comando(linha, argv);
+        if (argc == 0)                  /* linha vazia ou descartada */
+            continue;
+
+        if (strcmp(argv[0], "exit") == 0)   /* builtin: encerra o shell */
+            break;
+
+        executar_comando(argv);
+    }
 }
 
 int main(void) {
