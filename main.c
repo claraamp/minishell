@@ -3,6 +3,7 @@
 #include <unistd.h>   /* write, STDOUT_FILENO, STDERR_FILENO */
 #include <string.h>   /* strlen, strcmp */
 #include <errno.h>    /* errno, EINTR */
+#include <signal.h>   /* signal, SIGINT, SIG_IGN */
 #include "shell.h"
 
 /*
@@ -72,6 +73,9 @@ void loop_principal(void) {
 }
 
 int main(void) {
+    /* Ctrl+C (SIGINT) não deve derrubar o shell, só o comando em execução. */
+    signal(SIGINT, SIG_IGN);
+
     loop_principal();
     return 0;
 }

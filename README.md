@@ -1,6 +1,7 @@
 # Mini Shell com Chamadas ao Sistema
 
 Projeto Integrador — II Unidade — Prof. Dra. Larissa Barbosa Leôncio Pinheiro
+
 Integrantes: Amanda Bastos de Melo Correia, Júlia Teixeira Gonçalves, Maria Clara Andrade Magalhães Paternostro D’Oliveira
 
 Um interpretador de comandos simplificado, em C, que mostra um prompt, lê o comando digitado e o executa em um processo filho, usando diretamente as chamadas ao sistema do Linux.
@@ -42,6 +43,7 @@ loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> execu
 | `execvp()` | `executar_comando`  | No filho, substitui o programa pelo comando digitado, procurando o executável no `PATH`. É uma função da libc sobre a chamada `execve()`. |
 | `wait()`   | `executar_comando`  | O pai espera o filho terminar e lê o código de saída. Evita processos zumbis e garante que o prompt só volte depois da saída do comando. |
 | `_exit()`  | `executar_comando`  | Encerra o filho quando o `execvp()` falha (126 sem permissão, 127 comando não encontrado), sem esvaziar buffers herdados do pai. |
+| `signal()` | `main`, `executar_comando` | O shell ignora o `SIGINT` (Ctrl+C) para não ser encerrado; o filho restaura o comportamento padrão antes do `execvp()`, porque sinais ignorados continuam ignorados depois do `exec`. |
 
 O `exit` é tratado dentro do próprio loop, sem `fork()`: quem precisa terminar é o processo do shell, e não existe um programa `exit` para o `execvp()` encontrar.
 
@@ -106,7 +108,7 @@ $ printf 'echo Ola mundo\nls -l shell.h\n\n    \ncomandoquenaoexiste\nexit\necho
 - `cd` não é builtin: rodar `cd` não muda o diretório do shell.
 - `exit` ignora argumentos (`exit 3` encerra com código 0).
 - Linhas com mais de 1023 caracteres são descartadas com aviso; comandos com mais de 63 argumentos também.
-- Ctrl+C encerra o próprio shell, pois o sinal `SIGINT` não é tratado.
+- Ctrl+C no prompt só descarta o que foi digitado: o shell não pula linha nem mostra um novo prompt, como o bash faz.
 - As mensagens de erro do sistema saem em inglês (ex.: `Permission denied`), porque vêm do `strerror()`; só a de comando não encontrado é nossa.
 - Sem histórico nem edição de linha com as setas.
 
