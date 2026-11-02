@@ -1,7 +1,8 @@
 /* main.c — PESSOA 3: saída, loop principal e integração */
 
-#include <unistd.h>   /* write, STDOUT_FILENO, STDERR_FILENO */
-#include <string.h>   /* strlen, strcmp */
+#include <unistd.h>   /* write, chdir, STDOUT_FILENO, STDERR_FILENO */
+#include <string.h>   /* strlen, strcmp, strerror */
+#include <stdlib.h>   /* getenv */
 #include <errno.h>    /* errno, EINTR */
 #include "shell.h"
 
@@ -41,6 +42,41 @@ void escrever_erro(const char *msg) {
     (void)escrever_tudo(STDERR_FILENO, msg);
 }
 
+/*
+ * cd: muda o diretório atual do PRÓPRIO shell com chdir().
+ *
+ * Precisa ser builtin (rodar no shell, sem fork()): o diretório atual é
+ * um atributo de cada processo. Se o cd rodasse num filho, só o filho
+ * mudaria de diretório e, quando ele terminasse, o shell continuaria
+ * onde estava.
+ *
+ * Sem argumento, vai para $HOME, como no bash.
+ */
+static void executar_cd(int argc, char **argv) {
+    const char *destino;
+    int         erro;
+
+    if (argc > 2) {
+        escrever_erro("minishell: cd: argumentos demais\n");
+        return;
+    }
+
+    destino = (argc == 2) ? argv[1] : getenv("HOME");
+    if (destino == NULL) {
+        escrever_erro("minishell: cd: HOME não definido\n");
+        return;
+    }
+
+    if (chdir(destino) == -1) {
+        erro = errno;               /* guarda antes: o write() pode alterar o errno */
+        escrever_erro("minishell: cd: ");
+        escrever_erro(destino);
+        escrever_erro(": ");
+        escrever_erro(strerror(erro));
+        escrever_erro("\n");
+    }
+}
+
 void loop_principal(void) {
     char    linha[MAX_LINHA];
     char   *argv[MAX_ARGS];
@@ -66,6 +102,11 @@ void loop_principal(void) {
 
         if (strcmp(argv[0], "exit") == 0)   /* builtin: encerra o shell */
             break;
+
+        if (strcmp(argv[0], "cd") == 0) {   /* builtin: roda no próprio shell */
+            executar_cd(argc, argv);
+            continue;
+        }
 
         executar_comando(argv);
     }

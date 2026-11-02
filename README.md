@@ -29,7 +29,7 @@ Para sair do shell, digite `exit` ou pressione Ctrl+D em um prompt vazio.
 Fluxo de cada comando:
 
 ```
-loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> executar_comando -> repete
+loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> cd? -> executar_comando -> repete
 ```
 
 ## Chamadas ao sistema utilizadas
@@ -41,9 +41,12 @@ loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> execu
 | `fork()`   | `executar_comando`  | Cria um processo filho, cópia do shell, para rodar o comando sem substituir o próprio shell. |
 | `execvp()` | `executar_comando`  | No filho, substitui o programa pelo comando digitado, procurando o executável no `PATH`. É uma função da libc sobre a chamada `execve()`. |
 | `wait()`   | `executar_comando`  | O pai espera o filho terminar e lê o código de saída. Evita processos zumbis e garante que o prompt só volte depois da saída do comando. |
+| `chdir()`  | `executar_cd`       | Muda o diretório atual do próprio shell no builtin `cd` (sem argumento, vai para `$HOME`). |
 | `_exit()`  | `executar_comando`  | Encerra o filho quando o `execvp()` falha (126 sem permissão, 127 comando não encontrado), sem esvaziar buffers herdados do pai. |
 
 O `exit` é tratado dentro do próprio loop, sem `fork()`: quem precisa terminar é o processo do shell, e não existe um programa `exit` para o `execvp()` encontrar.
+
+O `cd` também é builtin pelo mesmo motivo: o diretório atual é de cada processo. Se o `cd` rodasse em um filho, só o filho mudaria de diretório, e o shell continuaria onde estava.
 
 ## Exemplos de comandos testados
 
@@ -102,8 +105,7 @@ $ printf 'echo Ola mundo\nls -l shell.h\n\n    \ncomandoquenaoexiste\nexit\necho
 
 - Sem pipes (`|`), redirecionamento (`>`, `<`) ou execução em segundo plano (`&`).
 - Sem aspas nem escapes: `echo "a b"` imprime as aspas, e argumentos com espaço não são possíveis.
-- Sem expansão de variáveis ou curingas: `$HOME` e `*.c` são passados literalmente.
-- `cd` não é builtin: rodar `cd` não muda o diretório do shell.
+- Sem expansão de variáveis, `~` ou curingas: `$HOME`, `~` e `*.c` são passados literalmente (`cd ~` não funciona; use só `cd`).
 - `exit` ignora argumentos (`exit 3` encerra com código 0).
 - Linhas com mais de 1023 caracteres são descartadas com aviso; comandos com mais de 63 argumentos também.
 - Ctrl+C encerra o próprio shell, pois o sinal `SIGINT` não é tratado.
