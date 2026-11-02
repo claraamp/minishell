@@ -50,8 +50,8 @@ O `exit` é tratado dentro do próprio loop, sem `fork()`: quem precisa terminar
 Sessão interativa:
 
 ```
-> echo Ola, mundo
-Ola, mundo
+> echo Ola mundo
+Ola mundo
 > ls -l
 total 56
 -rw-rw-r-- 1 clara clara  2634 Nov  1 11:16 execucao.c
@@ -107,6 +107,7 @@ $ printf 'echo Ola mundo\nls -l shell.h\n\n    \ncomandoquenaoexiste\nexit\necho
 - `exit` ignora argumentos (`exit 3` encerra com código 0).
 - Linhas com mais de 1023 caracteres são descartadas com aviso; comandos com mais de 63 argumentos também.
 - Ctrl+C encerra o próprio shell, pois o sinal `SIGINT` não é tratado.
+- As mensagens de erro do sistema saem em inglês (ex.: `Permission denied`), porque vêm do `strerror()`; só a de comando não encontrado é nossa.
 - Sem histórico nem edição de linha com as setas.
 
 ## Vídeo de demonstração
