@@ -42,13 +42,15 @@ void escrever_erro(const char *msg) {
 }
 
 void loop_principal(void) {
-    char linha[MAX_LINHA];
-    char *argv[MAX_ARGS];
+    char    linha[MAX_LINHA];
+    char   *argv[MAX_ARGS];
+    ssize_t n;
+    int     argc;
 
     while (1) {
         escrever("> ");
 
-        ssize_t n = ler_comando(linha, sizeof(linha));
+        n = ler_comando(linha, sizeof(linha));
         if (n == 0) {                   /* EOF (Ctrl+D): encerra */
             escrever("\n");
             break;
@@ -58,7 +60,7 @@ void loop_principal(void) {
             break;
         }
 
-        int argc = parse_comando(linha, argv);
+        argc = parse_comando(linha, argv);
         if (argc == 0)                  /* linha vazia ou descartada */
             continue;
 
