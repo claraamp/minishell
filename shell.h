@@ -29,7 +29,7 @@ int parse_comando(char *linha, char **argv);
 /*
  * Cria um processo filho com fork(), executa argv com execvp()
  * e faz o pai aguardar com wait().
- * Retorna: código de saída do filho, ou -1 se o fork falhar,
+ * Retorna: código de saída do filho, ou -1 se o fork ou o wait falharem,
  * se o comando terminar por um sinal ou se argv estiver vazio.
  */
 int executar_comando(char **argv);
