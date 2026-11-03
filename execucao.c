@@ -1,11 +1,87 @@
 /* execucao.c — PESSOA 2: criação e execução de processos */
 
-#include <unistd.h>     /* fork, execvp, _exit */
+#include <unistd.h>     /* fork, execvp, _exit, dup2, close */
+#include <fcntl.h>      /* open, O_WRONLY, O_CREAT, O_TRUNC */
 #include <sys/wait.h>   /* wait, WIFEXITED, WEXITSTATUS */
 #include <errno.h>      /* errno, ENOENT, EACCES, EINTR */
-#include <string.h>     /* strerror */
+#include <string.h>     /* strerror, strcmp */
 #include <signal.h>     /* signal, SIGINT, SIGQUIT, SIG_DFL */
 #include "shell.h"
+
+/*
+ * Redirecionamento de saída: "comando [args] > arquivo".
+ *
+ * Roda SÓ no processo filho, antes do execvp(). Procura o token ">" em
+ * argv e, se achar:
+ *   1. open() abre o arquivo para escrita: cria se não existir e apaga o
+ *      conteúdo se existir (permissão 0666, filtrada pela umask);
+ *   2. dup2() copia esse descritor para o fd 1 (STDOUT_FILENO): daí em
+ *      diante, o que o comando escrever na saída padrão vai para o arquivo;
+ *   3. close() fecha o descritor original, que não é mais necessário;
+ *   4. argv é cortado no ">" (argv[i] = NULL), para o comando não receber
+ *      ">" e o nome do arquivo como argumentos.
+ *
+ * Como só o filho é redirecionado, o prompt do shell continua indo para
+ * o terminal. E como o execvp() mantém os descritores abertos, o programa
+ * novo já começa com a saída padrão apontando para o arquivo.
+ *
+ * Só aceita a forma "comando > arquivo" no fim da linha, com o ">"
+ * separado por espaços (o parse_comando separa os tokens por espaço).
+ *
+ * Retorna: 0 se deu certo ou se não há ">"; 2 em erro de sintaxe;
+ * 1 se o arquivo não pôde ser aberto. O filho usa esse valor no _exit().
+ */
+static int redirecionar_saida(char **argv) {
+    int i;
+    int fd;
+    int erro;
+
+    for (i = 0; argv[i] != NULL; i++)
+        if (strcmp(argv[i], ">") == 0)
+            break;
+
+    if (argv[i] == NULL)            /* não há ">": nada a fazer */
+        return 0;
+
+    if (i == 0) {
+        escrever_erro("minishell: erro de sintaxe: falta o comando antes de '>'\n");
+        return 2;
+    }
+    if (argv[i + 1] == NULL) {
+        escrever_erro("minishell: erro de sintaxe: falta o arquivo depois de '>'\n");
+        return 2;
+    }
+    if (argv[i + 2] != NULL) {      /* ex.: "ls > a b" ou "ls > a > b" */
+        escrever_erro("minishell: erro de sintaxe: '>' e o arquivo devem ficar no fim do comando\n");
+        return 2;
+    }
+
+    fd = open(argv[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd == -1) {
+        erro = errno;               /* guarda antes: o write() pode alterar o errno */
+        escrever_erro("minishell: ");
+        escrever_erro(argv[i + 1]);
+        escrever_erro(": ");
+        escrever_erro(strerror(erro));
+        escrever_erro("\n");
+        return 1;
+    }
+
+    if (fd != STDOUT_FILENO) {      /* só é igual se o fd 1 estava fechado */
+        if (dup2(fd, STDOUT_FILENO) == -1) {
+            erro = errno;
+            escrever_erro("minishell: dup2: ");
+            escrever_erro(strerror(erro));
+            escrever_erro("\n");
+            close(fd);
+            return 1;
+        }
+        close(fd);
+    }
+
+    argv[i] = NULL;                 /* o comando termina antes do ">" */
+    return 0;
+}
 
 /*
  * Executa argv em um processo filho usando fork() + execvp() + wait().
@@ -18,6 +94,9 @@
  * No filho usamos _exit() e não exit(): exit() executaria as rotinas de
  * saída e esvaziaria buffers herdados do pai, que seriam repetidos.
  *
+ * Se houver ">", o filho redireciona a saída antes do execvp()
+ * (ver redirecionar_saida()).
+ *
  * O pai espera o filho com wait(). Sem isso o filho terminado viraria
  * um processo zumbi, e o prompt apareceria antes da saída do comando.
  *
@@ -27,6 +106,7 @@ int executar_comando(char **argv) {
     pid_t pid;
     int   status;
     int   erro;
+    int   codigo;
 
     if (argv == NULL || argv[0] == NULL)
         return -1;
@@ -46,6 +126,11 @@ int executar_comando(char **argv) {
          * o comando também ignoraria Ctrl+C e Ctrl+\ e não daria para pará-lo. */
         signal(SIGINT, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);
+
+        /* "comando > arquivo": aponta a saída para o arquivo e corta o argv. */
+        codigo = redirecionar_saida(argv);
+        if (codigo != 0)
+            _exit(codigo);
 
         execvp(argv[0], argv);
 

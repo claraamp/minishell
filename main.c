@@ -59,6 +59,16 @@ static void executar_cd(int argc, char **argv) {
     const char *destino;
     char        atual[PATH_MAX];
     int         erro;
+    int         i;
+
+    /* O ">" só é tratado no filho (executar_comando), e o cd roda no
+     * próprio shell: avisa em vez de cair em "argumentos demais". */
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], ">") == 0) {
+            escrever_erro("minishell: cd: o redirecionamento '>' não vale para builtins\n");
+            return;
+        }
+    }
 
     if (argc > 2) {
         escrever_erro("minishell: cd: argumentos demais\n");
