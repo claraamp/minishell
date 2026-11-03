@@ -91,6 +91,27 @@ minishell: comandoquenaoexiste: comando não encontrado
 > exit
 ```
 
+Builtin `cd` (o `printenv PWD` mostra que a variável `PWD` também é atualizada):
+
+```
+> pwd
+/tmp
+> cd /usr/share
+> pwd
+/usr/share
+> cd ..
+> pwd
+/usr
+> printenv PWD
+/usr
+> cd naoexiste
+minishell: cd: naoexiste: No such file or directory
+> cd
+> pwd
+/home/jujujuh
+> exit
+```
+
 Entrada por pipe (os prompts aparecem juntos porque não há terminal ecoando o que foi digitado; o comando depois do `exit` não é executado):
 
 ```
@@ -106,6 +127,7 @@ $ printf 'echo Ola mundo\nls -l shell.h\n\n    \ncomandoquenaoexiste\nexit\necho
 - Sem pipes (`|`), redirecionamento (`>`, `<`) ou execução em segundo plano (`&`).
 - Sem aspas nem escapes: `echo "a b"` imprime as aspas, e argumentos com espaço não são possíveis.
 - Sem expansão de variáveis, `~` ou curingas: `$HOME`, `~` e `*.c` são passados literalmente (`cd ~` não funciona; use só `cd`).
+- `cd -` (voltar ao diretório anterior) não é suportado.
 - `exit` ignora argumentos (`exit 3` encerra com código 0).
 - Linhas com mais de 1023 caracteres são descartadas com aviso; comandos com mais de 63 argumentos também.
 - Ctrl+C encerra o próprio shell, pois o sinal `SIGINT` não é tratado.

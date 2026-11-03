@@ -1,8 +1,9 @@
 /* main.c — PESSOA 3: saída, loop principal e integração */
 
-#include <unistd.h>   /* write, chdir, STDOUT_FILENO, STDERR_FILENO */
+#include <unistd.h>   /* write, chdir, getcwd, STDOUT_FILENO, STDERR_FILENO */
 #include <string.h>   /* strlen, strcmp, strerror */
-#include <stdlib.h>   /* getenv */
+#include <stdlib.h>   /* getenv, setenv */
+#include <limits.h>   /* PATH_MAX */
 #include <errno.h>    /* errno, EINTR */
 #include "shell.h"
 
@@ -50,10 +51,12 @@ void escrever_erro(const char *msg) {
  * mudaria de diretório e, quando ele terminasse, o shell continuaria
  * onde estava.
  *
- * Sem argumento, vai para $HOME, como no bash.
+ * Sem argumento, vai para $HOME, como no bash. Depois de mudar,
+ * atualiza a variável de ambiente PWD.
  */
 static void executar_cd(int argc, char **argv) {
     const char *destino;
+    char        atual[PATH_MAX];
     int         erro;
 
     if (argc > 2) {
@@ -74,7 +77,13 @@ static void executar_cd(int argc, char **argv) {
         escrever_erro(": ");
         escrever_erro(strerror(erro));
         escrever_erro("\n");
+        return;
     }
+
+    /* Atualiza a variável PWD, que os filhos herdam (ex.: printenv PWD).
+     * O chdir() muda só o diretório do processo, não a variável. */
+    if (getcwd(atual, sizeof(atual)) != NULL)
+        setenv("PWD", atual, 1);
 }
 
 void loop_principal(void) {
