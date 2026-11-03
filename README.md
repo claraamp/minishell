@@ -30,7 +30,7 @@ Para sair do shell, digite `exit` ou pressione Ctrl+D em um prompt vazio.
 Fluxo de cada comando:
 
 ```
-loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> executar_comando -> repete
+loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> cd? -> executar_comando -> repete
 ```
 
 ## Chamadas ao sistema utilizadas
@@ -42,10 +42,14 @@ loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> execu
 | `fork()`   | `executar_comando`  | Cria um processo filho, cópia do shell, para rodar o comando sem substituir o próprio shell. |
 | `execvp()` | `executar_comando`  | No filho, substitui o programa pelo comando digitado, procurando o executável no `PATH`. É uma função da libc sobre a chamada `execve()`. |
 | `wait()`   | `executar_comando`  | O pai espera o filho terminar e lê o código de saída. Evita processos zumbis e garante que o prompt só volte depois da saída do comando. |
+| `chdir()`  | `executar_cd`       | Muda o diretório atual do próprio shell no builtin `cd` (sem argumento, vai para `$HOME`). |
+| `getcwd()` | `executar_cd`       | Lê o diretório atual depois do `chdir()` para atualizar a variável `PWD`, que os comandos executados depois herdam. |
 | `_exit()`  | `executar_comando`  | Encerra o filho quando o `execvp()` falha (126 sem permissão, 127 comando não encontrado), sem esvaziar buffers herdados do pai. |
 | `signal()` | `main`, `executar_comando` | O shell ignora `SIGINT` (Ctrl+C) e `SIGQUIT` (Ctrl+\) para não ser encerrado; o filho restaura o comportamento padrão antes do `execvp()`, porque sinais ignorados continuam ignorados depois do `exec`. É uma função da libc sobre a chamada `sigaction()`. |
 
 O `exit` é tratado dentro do próprio loop, sem `fork()`: quem precisa terminar é o processo do shell, e não existe um programa `exit` para o `execvp()` encontrar.
+
+O `cd` também é builtin pelo mesmo motivo: o diretório atual é de cada processo. Se o `cd` rodasse em um filho, só o filho mudaria de diretório, e o shell continuaria onde estava.
 
 ## Exemplos de comandos testados
 
@@ -90,6 +94,27 @@ minishell: comandoquenaoexiste: comando não encontrado
 > exit
 ```
 
+Builtin `cd` (o `printenv PWD` mostra que a variável `PWD` também é atualizada):
+
+```
+> pwd
+/tmp
+> cd /usr/share
+> pwd
+/usr/share
+> cd ..
+> pwd
+/usr
+> printenv PWD
+/usr
+> cd naoexiste
+minishell: cd: naoexiste: No such file or directory
+> cd
+> pwd
+/home/jujujuh
+> exit
+```
+
 Entrada por pipe (os prompts aparecem juntos porque não há terminal ecoando o que foi digitado; o comando depois do `exit` não é executado):
 
 ```
@@ -104,8 +129,8 @@ $ printf 'echo Ola mundo\nls -l shell.h\n\n    \ncomandoquenaoexiste\nexit\necho
 
 - Sem pipes (`|`), redirecionamento (`>`, `<`) ou execução em segundo plano (`&`).
 - Sem aspas nem escapes: `echo "a b"` imprime as aspas, e argumentos com espaço não são possíveis.
-- Sem expansão de variáveis ou curingas: `$HOME` e `*.c` são passados literalmente.
-- `cd` não é builtin: rodar `cd` não muda o diretório do shell.
+- Sem expansão de variáveis, `~` ou curingas: `$HOME`, `~` e `*.c` são passados literalmente (`cd ~` não funciona; use só `cd`).
+- `cd -` (voltar ao diretório anterior) não é suportado.
 - `exit` ignora argumentos (`exit 3` encerra com código 0).
 - Linhas com mais de 1023 caracteres são descartadas com aviso; comandos com mais de 63 argumentos também.
 - Ctrl+C e Ctrl+\ no prompt só descartam o que foi digitado: o shell não pula linha nem mostra um novo prompt, como o bash faz.
