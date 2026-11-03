@@ -94,6 +94,9 @@ static int redirecionar_saida(char **argv) {
  * No filho usamos _exit() e não exit(): exit() executaria as rotinas de
  * saída e esvaziaria buffers herdados do pai, que seriam repetidos.
  *
+ * Se houver ">", o filho redireciona a saída antes do execvp()
+ * (ver redirecionar_saida()).
+ *
  * O pai espera o filho com wait(). Sem isso o filho terminado viraria
  * um processo zumbi, e o prompt apareceria antes da saída do comando.
  *
@@ -103,6 +106,7 @@ int executar_comando(char **argv) {
     pid_t pid;
     int   status;
     int   erro;
+    int   codigo;
 
     if (argv == NULL || argv[0] == NULL)
         return -1;
@@ -124,9 +128,9 @@ int executar_comando(char **argv) {
         signal(SIGQUIT, SIG_DFL);
 
         /* "comando > arquivo": aponta a saída para o arquivo e corta o argv. */
-        erro = redirecionar_saida(argv);
-        if (erro != 0)
-            _exit(erro);
+        codigo = redirecionar_saida(argv);
+        if (codigo != 0)
+            _exit(codigo);
 
         execvp(argv[0], argv);
 
