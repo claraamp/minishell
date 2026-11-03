@@ -147,7 +147,7 @@ minishell: /naoexiste/x.txt: No such file or directory
 ## Limitações conhecidas
 
 - Sem pipes (`|`), redirecionamento de entrada (`<`) ou execução em segundo plano (`&`).
-- O `>` precisa de espaços em volta (`ls > a.txt`, não `ls>a.txt`) e deve ficar no fim do comando; não há `>>` (anexar) nem `2>`, e ele não vale para os builtins `cd` e `exit`.
+- O `>` precisa de espaços em volta (`ls > a.txt`, não `ls>a.txt`) e deve ficar no fim do comando; não há `>>` (anexar) nem `2>`, e ele não vale para os builtins: `cd pasta > f` avisa e não muda de diretório, e `exit > f` só encerra o shell.
 - Sem aspas nem escapes: `echo "a b"` imprime as aspas, e argumentos com espaço não são possíveis.
 - Sem expansão de variáveis, `~` ou curingas: `$HOME`, `~` e `*.c` são passados literalmente (`cd ~` não funciona; use só `cd`).
 - `cd -` (voltar ao diretório anterior) não é suportado.
