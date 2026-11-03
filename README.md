@@ -42,6 +42,7 @@ loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> cd? -
 | `execvp()` | `executar_comando`  | No filho, substitui o programa pelo comando digitado, procurando o executável no `PATH`. É uma função da libc sobre a chamada `execve()`. |
 | `wait()`   | `executar_comando`  | O pai espera o filho terminar e lê o código de saída. Evita processos zumbis e garante que o prompt só volte depois da saída do comando. |
 | `chdir()`  | `executar_cd`       | Muda o diretório atual do próprio shell no builtin `cd` (sem argumento, vai para `$HOME`). |
+| `getcwd()` | `executar_cd`       | Lê o diretório atual depois do `chdir()` para atualizar a variável `PWD`, que os comandos executados depois herdam. |
 | `_exit()`  | `executar_comando`  | Encerra o filho quando o `execvp()` falha (126 sem permissão, 127 comando não encontrado), sem esvaziar buffers herdados do pai. |
 
 O `exit` é tratado dentro do próprio loop, sem `fork()`: quem precisa terminar é o processo do shell, e não existe um programa `exit` para o `execvp()` encontrar.

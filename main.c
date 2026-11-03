@@ -69,6 +69,8 @@ static void executar_cd(int argc, char **argv) {
         escrever_erro("minishell: cd: HOME não definido\n");
         return;
     }
+    if (destino[0] == '\0')         /* HOME vazio: não faz nada, como o bash */
+        return;
 
     if (chdir(destino) == -1) {
         erro = errno;               /* guarda antes: o write() pode alterar o errno */
