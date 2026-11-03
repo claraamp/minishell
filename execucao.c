@@ -4,6 +4,7 @@
 #include <sys/wait.h>   /* wait, WIFEXITED, WEXITSTATUS */
 #include <errno.h>      /* errno, ENOENT, EACCES, EINTR */
 #include <string.h>     /* strerror */
+#include <signal.h>     /* signal, SIGINT, SIGQUIT, SIG_DFL */
 #include "shell.h"
 
 /*
@@ -41,6 +42,11 @@ int executar_comando(char **argv) {
     }
 
     if (pid == 0) {                 /* PROCESSO FILHO */
+        /* O execvp() mantém sinais ignorados como ignorados: sem isto,
+         * o comando também ignoraria Ctrl+C e Ctrl+\ e não daria para pará-lo. */
+        signal(SIGINT, SIG_DFL);
+        signal(SIGQUIT, SIG_DFL);
+
         execvp(argv[0], argv);
 
         /* Só chega aqui se o execvp() falhou. */
@@ -69,6 +75,10 @@ int executar_comando(char **argv) {
         if (r == -1 && errno != EINTR)  /* EINTR: interrompido por sinal, espera de novo */
             return -1;
     }
+
+    if (WIFSIGNALED(status) &&
+        (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT))
+        escrever("\n");            /* o terminal mostra ^C ou ^\ sem quebrar a linha */
 
     if (WIFEXITED(status))
         return WEXITSTATUS(status);
