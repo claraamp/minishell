@@ -43,7 +43,7 @@ loop_principal: escrever("> ") -> ler_comando -> parse_comando -> exit? -> execu
 | `execvp()` | `executar_comando`  | No filho, substitui o programa pelo comando digitado, procurando o executável no `PATH`. É uma função da libc sobre a chamada `execve()`. |
 | `wait()`   | `executar_comando`  | O pai espera o filho terminar e lê o código de saída. Evita processos zumbis e garante que o prompt só volte depois da saída do comando. |
 | `_exit()`  | `executar_comando`  | Encerra o filho quando o `execvp()` falha (126 sem permissão, 127 comando não encontrado), sem esvaziar buffers herdados do pai. |
-| `signal()` | `main`, `executar_comando` | O shell ignora `SIGINT` (Ctrl+C) e `SIGQUIT` (Ctrl+\) para não ser encerrado; o filho restaura o comportamento padrão antes do `execvp()`, porque sinais ignorados continuam ignorados depois do `exec`. |
+| `signal()` | `main`, `executar_comando` | O shell ignora `SIGINT` (Ctrl+C) e `SIGQUIT` (Ctrl+\) para não ser encerrado; o filho restaura o comportamento padrão antes do `execvp()`, porque sinais ignorados continuam ignorados depois do `exec`. É uma função da libc sobre a chamada `sigaction()`. |
 
 O `exit` é tratado dentro do próprio loop, sem `fork()`: quem precisa terminar é o processo do shell, e não existe um programa `exit` para o `execvp()` encontrar.
 
