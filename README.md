@@ -159,6 +159,6 @@ minishell: /naoexiste/x.txt: No such file or directory
 
 ## Vídeo de demonstração
 
-[Assista à demonstração no Google Drive](https://drive.google.com/file/d/1CEbBzWTf0zK9xVWRvYLGTsyEleQuQbMB/view?usp=sharing) (2 min, sem áudio).
+[Assista à demonstração no Google Drive](https://drive.google.com/file/d/1-OMBqUGYV1xt_iG1ABkD_FNB89wLjsJb/view?usp=sharing).
 
 O vídeo mostra, em ordem: a compilação com `make`, linhas vazias e só com espaços, os comandos `ls -l`, `echo Ola mundo`, `cat teste.txt` e um comando inexistente, o redirecionamento com `>`, o Ctrl+C sem derrubar o shell e o `cd` como builtin.
